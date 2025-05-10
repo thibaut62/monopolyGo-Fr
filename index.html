@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Cartes Monopoly Star Wars</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/cardsData.js"></script>
+    <style>
+        .gold-card {
+            background-color: #fef3c7;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-6">
+        <h1 class="text-2xl font-bold mb-6 text-center">Gestion Cartes Monopoly Star Wars</h1>
+        
+        <!-- Boutons de sauvegarde et chargement -->
+        <div class="mb-6 flex justify-center space-x-4">
+            <button id="saveButton" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">
+                Sauvegarder
+            </button>
+            <button id="loadButton" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded">
+                Charger
+            </button>
+        </div>
+        
+        <!-- Import/Export pour les comptes -->
+        <div class="mb-6">
+            <div id="accountButtons" class="flex flex-wrap justify-center gap-2">
+                <!-- Généré dynamiquement -->
+            </div>
+        </div>
+        
+        <!-- Statistiques -->
+        <div class="mb-6 overflow-x-auto bg-gray-100 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Statistiques</h2>
+            <div id="statistics" class="flex flex-wrap justify-center gap-4">
+                <!-- Généré dynamiquement -->
+            </div>
+        </div>
+        
+        <!-- Liste des cartes -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border rounded-lg">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700">
+                        <th class="py-2 px-3 text-left">ID</th>
+                        <th class="py-2 px-3 text-left">⭐</th>
+                        <th class="py-2 px-3 text-left">Type</th>
+                        <th class="py-2 px-3 text-left">Nom</th>
+                        <th class="py-2 px-3 text-center account-header">thib gros</th>
+                        <th class="py-2 px-3 text-center account-header">thib petit</th>
+                    </tr>
+                </thead>
+                <tbody id="cardsTable">
+                    <!-- Généré dynamiquement -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Informations -->
+        <div class="mt-6 text-center text-gray-500 text-sm">
+            <p>Application de Gestion des Cartes Monopoly Star Wars</p>
+            <p>Les données sont stockées localement dans votre navigateur</p>
+            <p id="cardsInfo">Total des cartes: 0 (dont 0 cartes OR)</p>
+        </div>
+    </div>
+    
+    <script>
+    // Variables globales
+    let cards = [];
+    const accounts = ["thib gros", "thib petit"];
+
+    // Fonction d'initialisation
+    function init() {
+        console.log("Initialisation de l'application...");
+        console.log("Nombre de cartes disponibles:", cardsData.length);
+        
+        // Charger les données sauvegardées ou initialiser
+        const savedData = localStorage.getItem('monopolyData');
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                cards = data.cards;
+                console.log("Données chargées depuis le stockage local:", cards.length, "cartes");
+            } catch (e) {
+                console.error("Erreur lors du chargement des données:", e);
+                initializeDefaultData();
+            }
+        } else {
+            console.log("Aucune donnée sauvegardée, initialisation par défaut...");
+            initializeDefaultData();
+        }
+
+        // Initialiser les boutons des comptes
+        renderAccountButtons();
+        
+        // Afficher les cartes
+        renderCards();
+        
+        // Mettre à jour les statistiques
+        updateStatistics();
+        
+        // Ajouter les écouteurs d'événements aux boutons
+        document.getElementById('saveButton').addEventListener('click', saveData);
+        document.getElementById('loadButton').addEventListener('click', loadData);
+    }
+
+    // Fonction pour initialiser les données par défaut
+    function initializeDefaultData() {
+        // Ajouter les quantités à chaque carte
+        cards = cardsData.map(card => ({
+            ...card,
+            quantities: [0, 0] // Initialiser avec des zéros pour chaque compte
+        }));
+        console.log("Données par défaut initialisées:", cards.length, "cartes");
+    }
+
+    // Fonction pour afficher les boutons des comptes
+    function renderAccountButtons() {
+        const container = document.getElementById('accountButtons');
+        container.innerHTML = '';
+        
+        accounts.forEach((account, index) => {
+            const div = document.createElement('div');
+            div.className = 'flex space-x-1 items-center bg-gray-100 p-2 rounded';
+            div.innerHTML = `
+                <span class="font-medium">${account}</span>
+                <div class="flex space-x-1">
+                    <button class="copy-button bg-purple-500 hover:bg-purple-600 text-white py-1 px-2 rounded text-xs" data-index="${index}">
+                        Copier
+                    </button>
+                    <button class="import-button bg-amber-500 hover:bg-amber-600 text-white py-1 px-2 rounded text-xs" data-index="${index}">
+                        Importer
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        
+        // Ajouter les écouteurs d'événements
+        document.querySelectorAll('.copy-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                copyQuantitiesForAccount(index);
+            });
+        });
+        
+        document.querySelectorAll('.import-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                importQuantitiesForAccount(index);
+            });
+        });
+    }
+
+    // Fonction pour afficher les cartes avec mise en évidence des échanges possibles
+    function renderCards() {
+        console.log("Rendu des cartes...", cards.length, "cartes à afficher");
+        
+        const tbody = document.getElementById('cardsTable');
+        tbody.innerHTML = '';
+        
+        cards.forEach(card => {
+            const tr = document.createElement('tr');
+            
+            // Déterminer si des échanges sont possibles entre les comptes
+            const account0HasExtra = card.quantities[0] > 1;
+            const account1HasExtra = card.quantities[1] > 1;
+            const account0Needs = card.quantities[0] === 0;
+            const account1Needs = card.quantities[1] === 0;
+            
+            // Définir les classes CSS en fonction des possibilités d'échange
+            let account0Class = '';
+            let account1Class = '';
+            
+            if (account0HasExtra && account1Needs) {
+                // Le compte 0 a des extras et le compte 1 en a besoin
+                account0Class = 'bg-green-100 border-green-300 border';
+                account1Class = 'bg-blue-100 border-blue-300 border';
+            }
+            
+            if (account1HasExtra && account0Needs) {
+                // Le compte 1 a des extras et le compte 0 en a besoin
+                account1Class = 'bg-green-100 border-green-300 border';
+                account0Class = 'bg-blue-100 border-blue-300 border';
+            }
+            
+            // Classe de base pour la ligne
+            tr.className = `border-t hover:bg-gray-50 ${card.isGold ? 'gold-card' : ''}`;
+            
+            tr.innerHTML = `
+                <td class="py-2 px-3">${card.id}</td>
+                <td class="py-2 px-3">${'⭐'.repeat(card.stars)}</td>
+                <td class="py-2 px-3">
+                    ${card.isGold ? 
+                        '<span class="inline-block bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs font-bold">OR</span>' : 
+                        '<span class="inline-block bg-gray-200 text-gray-800 px-2 py-1 rounded text-xs">Standard</span>'
+                    }
+                </td>
+                <td class="py-2 px-3">${card.name}</td>
+                <td class="py-2 px-3 text-center ${account0Class}">
+                    <input type="number" min="0" class="quantity-input w-12 text-center border rounded" 
+                        data-card-id="${card.id}" data-account-index="0" value="${card.quantities[0]}">
+                    ${account0HasExtra && account1Needs ? 
+                        '<span class="inline-block ml-1 text-green-600 text-xs">→</span>' : ''}
+                </td>
+                <td class="py-2 px-3 text-center ${account1Class}">
+                    <input type="number" min="0" class="quantity-input w-12 text-center border rounded" 
+                        data-card-id="${card.id}" data-account-index="1" value="${card.quantities[1]}">
+                    ${account1HasExtra && account0Needs ? 
+                        '<span class="inline-block mr-1 text-green-600 text-xs">←</span>' : ''}
+                </td>
+            `;
+            
+            tbody.appendChild(tr);
+        });
+        
+        // Mettre à jour les informations des cartes
+        document.getElementById('cardsInfo').textContent = `Total des cartes: ${cards.length} (dont ${cards.filter(c => c.isGold).length} cartes OR)`;
+        
+        // Ajouter les écouteurs d'événements aux inputs
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const cardId = parseInt(this.getAttribute('data-card-id'));
+                const accountIndex = parseInt(this.getAttribute('data-account-index'));
+                const newValue = parseInt(this.value) || 0;
+                
+                updateQuantity(cardId, accountIndex, newValue);
+            });
+        });
+    }
+
+    // Fonction pour mettre à jour la quantité d'une carte
+    function updateQuantity(cardId, accountIndex, newValue) {
+        cards = cards.map(card => {
+            if (card.id === cardId) {
+                const newQuantities = [...card.quantities];
+                newQuantities[accountIndex] = newValue;
+                return { ...card, quantities: newQuantities };
+            }
+            return card;
+        });
+        
+        // Mettre à jour les statistiques
+        updateStatistics();
+    }
+
+    // Fonction pour mettre à jour les statistiques
+function updateStatistics() {
+    const container = document.getElementById('statistics');
+    container.innerHTML = '';
+    
+    // Calculer le nombre de cartes uniques possédées par compte
+    const uniqueCardsByAccount = accounts.map((_, index) => {
+        return cards.filter(card => card.quantities[index] > 0).length;
+    });
+    
+    // Afficher les statistiques par compte sans le total
+    accounts.forEach((account, index) => {
+        const div = document.createElement('div');
+        div.className = 'text-center bg-white p-2 rounded shadow';
+        div.innerHTML = `
+            <div class="font-medium">${account}</div>
+            <div class="text-xl font-bold">${uniqueCardsByAccount[index]}</div>
+        `;
+        container.appendChild(div);
+    });
+    
+    // Ne pas afficher de total du tout
+}
+        
+
+
+    // Fonction pour sauvegarder les données
+    function saveData() {
+        const data = {
+            cards: cards,
+            accounts: accounts
+        };
+        localStorage.setItem('monopolyData', JSON.stringify(data));
+        alert('Données sauvegardées avec succès!');
+    }
+
+    // Fonction pour charger les données
+    function loadData() {
+        const savedData = localStorage.getItem('monopolyData');
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                cards = data.cards;
+                renderCards();
+                updateStatistics();
+                alert('Données chargées avec succès!');
+            } catch (e) {
+                console.error("Erreur lors du chargement des données:", e);
+                alert("Erreur lors du chargement des données.");
+            }
+        } else {
+            alert('Aucune donnée sauvegardée trouvée.');
+        }
+    }
+
+    // Fonction pour copier les quantités d'un compte
+    function copyQuantitiesForAccount(accountIndex) {
+        const quantities = cards.map(card => card.quantities[accountIndex]).join('\n');
+        navigator.clipboard.writeText(`Quantity\n${quantities}`)
+            .then(() => {
+                alert(`Les quantités pour ${accounts[accountIndex]} ont été copiées dans le presse-papiers.`);
+            })
+            .catch(() => {
+                // Fallback pour les navigateurs qui ne supportent pas l'API Clipboard
+                const textarea = document.createElement('textarea');
+                textarea.value = `Quantity\n${quantities}`;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert(`Les quantités pour ${accounts[accountIndex]} ont été copiées dans le presse-papiers.`);
+            });
+    }
+
+    // Fonction pour importer les quantités d'un compte
+    function importQuantitiesForAccount(accountIndex) {
+        const input = prompt("Collez les quantités (une par ligne, commençant par 'Quantity'):");
+        if (!input) return;
+        
+        const lines = input.split('\n');
+        if (lines.length < 2 || lines[0].trim() !== 'Quantity') {
+            alert("Format invalide. Assurez-vous que les données commencent par 'Quantity'.");
+            return;
+        }
+        
+        const quantities = lines.slice(1).map(line => parseInt(line.trim(), 10) || 0);
+        if (quantities.length !== cards.length) {
+            alert(`Nombre de quantités (${quantities.length}) ne correspond pas au nombre de cartes (${cards.length}).`);
+            return;
+        }
+        
+        // Mettre à jour les quantités
+        cards = cards.map((card, index) => {
+            const newQuantities = [...card.quantities];
+            newQuantities[accountIndex] = quantities[index];
+            return { ...card, quantities: newQuantities };
+        });
+        
+        // Mettre à jour l'interface
+        renderCards();
+        updateStatistics();
+        alert(`Importation réussie pour ${accounts[accountIndex]}.`);
+    }
+
+    // Initialiser l'application au chargement
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
