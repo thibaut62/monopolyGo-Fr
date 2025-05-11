@@ -405,7 +405,7 @@
             }
         }
 
-        // Mise à jour de l'affichage des cartes avec nom suivi des étoiles
+        // Mise à jour de l'affichage des cartes avec numéro d'ensemble
         function renderCards() {
             console.log("Rendu des cartes...", cards.length, "cartes à afficher");
             
@@ -423,9 +423,13 @@
                 const tr = document.createElement('tr');
                 tr.className = `border-t hover:bg-gray-50 ${card.isGold ? 'gold-card' : ''}`;
                 
-                // Cellule du nom avec étoiles après le nom
+                // Calculer le numéro d'ensemble (supposant 9 cartes par ensemble, commençant à 1)
+                const setNumber = Math.floor((card.id - 1) / 9) + 1;
+                
+                // Cellule du nom avec numéro d'ensemble, nom, et étoiles
                 let html = `
                     <td class="py-2 px-3">
+                        <span class="inline-block bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-bold mr-2">Set. ${setNumber}</span>
                         ${card.name} 
                         ${card.isGold ? 
                             '<span class="inline-block bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs font-bold mx-1">OR</span>' : 
