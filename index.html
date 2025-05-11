@@ -351,7 +351,7 @@
                 });
         }
 
-        // Fonction pour importer les quantités d'un compte au format consécutif
+        // Fonction pour importer les quantités d'un compte - format une ligne par valeur
         function importAccount(accountIndex) {
             const input = prompt(`Collez les données à importer pour ${accounts[accountIndex]}`);
             if (!input || input.trim() === "") {
@@ -360,56 +360,34 @@
             }
             
             try {
-                // Nettoyer l'entrée pour s'assurer qu'elle ne contient que des chiffres
-                const cleanedInput = input.replace(/[^0-9]/g, '');
+                // Diviser l'entrée par les sauts de ligne
+                let lines = input.split(/\r?\n/);
                 
-                if (cleanedInput.length === 0) {
-                    alert("Les données ne contiennent aucun chiffre valide.");
+                // Supprimer le mot "Quantity" s'il est présent dans la première ligne
+                if (lines.length > 0 && lines[0].trim().toLowerCase() === "quantity") {
+                    lines = lines.slice(1);
+                }
+                
+                // Filtrer les lignes vides et convertir en nombres
+                const quantities = lines
+                    .map(line => line.trim())
+                    .filter(line => line !== "")
+                    .map(line => parseInt(line, 10))
+                    .filter(num => !isNaN(num));
+                
+                console.log("Quantités détectées:", quantities);
+                
+                if (quantities.length === 0) {
+                    alert("Aucune quantité valide n'a été trouvée.");
                     return;
                 }
                 
                 let importCount = 0;
-                let currentPos = 0;
                 
-                // Parcourir toutes les cartes dans l'ordre des IDs
-                for (let i = 0; i < cards.length; i++) {
-                    // Si nous avons dépassé la longueur de l'entrée, arrêter
-                    if (currentPos >= cleanedInput.length) {
-                        break;
-                    }
-                    
-                    // Lire un ou deux caractères (pour supporter des quantités > 9)
-                    // On suppose qu'aucune quantité ne dépasse 99
-                    let quantityStr;
-                    if (currentPos + 1 < cleanedInput.length && 
-                        parseInt(cleanedInput.substring(currentPos, currentPos + 2)) <= 99) {
-                        // Essayer de lire deux chiffres pour les quantités > 9
-                        const twoDigits = parseInt(cleanedInput.substring(currentPos, currentPos + 2));
-                        if (twoDigits >= 10) {
-                            quantityStr = cleanedInput.substring(currentPos, currentPos + 2);
-                            currentPos += 2;
-                        } else {
-                            quantityStr = cleanedInput.substring(currentPos, currentPos + 1);
-                            currentPos += 1;
-                        }
-                    } else {
-                        // Lire un seul chiffre
-                        quantityStr = cleanedInput.substring(currentPos, currentPos + 1);
-                        currentPos += 1;
-                    }
-                    
-                    const quantity = parseInt(quantityStr);
-                    
-                    // Ignorer les valeurs non numériques
-                    if (isNaN(quantity)) {
-                        continue;
-                    }
-                    
-                    // Mettre à jour la quantité pour cette carte
-                    if (i < cards.length) {
-                        cards[i].quantities[accountIndex] = quantity;
-                        importCount++;
-                    }
+                // Parcourir chaque quantité et l'assigner à la carte correspondante
+                for (let i = 0; i < Math.min(quantities.length, cards.length); i++) {
+                    cards[i].quantities[accountIndex] = quantities[i];
+                    importCount++;
                 }
                 
                 if (importCount > 0) {
@@ -423,7 +401,7 @@
                 
             } catch (e) {
                 console.error('Erreur lors de l\'importation:', e);
-                alert('Une erreur s\'est produite lors de l\'importation. Veuillez réessayer.');
+                alert('Une erreur s\'est produite lors de l\'importation: ' + e.message);
             }
         }
 
