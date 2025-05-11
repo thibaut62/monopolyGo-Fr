@@ -405,19 +405,16 @@
             }
         }
 
-        // Mise à jour de l'affichage des cartes pour prendre en compte un nombre variable de comptes
+        // Mise à jour de l'affichage des cartes avec nom suivi des étoiles
         function renderCards() {
             console.log("Rendu des cartes...", cards.length, "cartes à afficher");
             
             const tbody = document.getElementById('cardsTable');
             tbody.innerHTML = '';
             
-            // Mettre à jour l'en-tête du tableau pour afficher tous les comptes
+            // Mettre à jour l'en-tête du tableau avec uniquement Nom et comptes
             const thead = document.querySelector('thead tr');
             thead.innerHTML = `
-                <th class="py-2 px-3 text-left">ID</th>
-                <th class="py-2 px-3 text-left">★</th>
-                <th class="py-2 px-3 text-left">Type</th>
                 <th class="py-2 px-3 text-left">Nom</th>
                 ${accounts.map(account => `<th class="py-2 px-3 text-center">${account}</th>`).join('')}
             `;
@@ -426,17 +423,16 @@
                 const tr = document.createElement('tr');
                 tr.className = `border-t hover:bg-gray-50 ${card.isGold ? 'gold-card' : ''}`;
                 
-                // Cellules de base
+                // Cellule du nom avec étoiles après le nom
                 let html = `
-                    <td class="py-2 px-3">${card.id}</td>
-                    <td class="py-2 px-3">${'⭐'.repeat(card.stars)}</td>
                     <td class="py-2 px-3">
+                        ${card.name} 
                         ${card.isGold ? 
-                            '<span class="inline-block bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs font-bold">OR</span>' : 
-                            '<span class="inline-block bg-gray-200 text-gray-800 px-2 py-1 rounded text-xs">Standard</span>'
+                            '<span class="inline-block bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs font-bold mx-1">OR</span>' : 
+                            ''
                         }
+                        <span class="text-yellow-500">${'⭐'.repeat(card.stars)}</span>
                     </td>
-                    <td class="py-2 px-3">${card.name}</td>
                 `;
                 
                 // Ajouter une cellule pour chaque compte
