@@ -383,68 +383,182 @@
                 quantitiesText += card.quantities[accountIndex] + "\n";
             });
             
-            navigator.clipboard.writeText(quantitiesText)
-                .then(() => {
+            // Créer un élément textarea temporaire pour la copie
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = quantitiesText;
+            tempTextArea.setAttribute('readonly', '');
+            tempTextArea.style.position = 'absolute';
+            tempTextArea.style.left = '-9999px';
+            document.body.appendChild(tempTextArea);
+            
+            // Sélectionner et copier le texte
+            tempTextArea.select();
+            let success = false;
+            
+            try {
+                // Essayer d'abord avec document.execCommand (fonctionne sur tous les navigateurs)
+                success = document.execCommand('copy');
+                
+                // Si ça échoue, essayer avec l'API Clipboard
+                if (!success) {
+                    navigator.clipboard.writeText(quantitiesText)
+                        .then(() => {
+                            success = true;
+                            alert(`Données de ${accounts[accountIndex]} copiées dans le presse-papier.`);
+                        })
+                        .catch(err => {
+                            console.error('Erreur lors de la copie des données:', err);
+                            alert('Erreur lors de la copie des données. Essayez de sélectionner le texte manuellement.');
+                        });
+                } else {
                     alert(`Données de ${accounts[accountIndex]} copiées dans le presse-papier.`);
-                })
-                .catch(err => {
-                    console.error('Erreur lors de la copie des données:', err);
-                    alert('Erreur lors de la copie des données.');
-                });
+                }
+            } catch (err) {
+                console.error('Erreur lors de la copie des données:', err);
+                alert('Erreur lors de la copie des données. Essayez de sélectionner le texte manuellement.');
+            }
+            
+            // Nettoyer
+            document.body.removeChild(tempTextArea);
         }
+        
 
         // Fonction pour importer les quantités de compte - format une ligne par valeur
         function importAccount(accountIndex) {
-            const input = prompt(`Collez les données à importer pour ${accounts[accountIndex]}`);
-            if (!input || input.trim() === "") {
-                alert("Aucune donnée fournie.");
-                return;
-            }
+            // Créer un élément textarea pour le collage
+            const pasteArea = document.createElement('textarea');
+            pasteArea.style.width = '100%';
+            pasteArea.style.height = '100px';
+            pasteArea.style.padding = '10px';
+            pasteArea.style.border = '1px solid #ccc';
+            pasteArea.style.borderRadius = '4px';
+            pasteArea.style.fontFamily = 'monospace';
+            pasteArea.style.fontSize = '12px';
+            pasteArea.placeholder = "Collez votre code d'import ici...";
             
-            try {
-                // Diviser l'entrée par sauts de ligne
-                let lines = input.split(/\r?\n/);
-                
-                // Supprimer le mot "Quantity" s'il est présent dans la première ligne
-                if (lines.length > 0 && lines[0].trim().toLowerCase() === "quantity") {
-                    lines = lines.slice(1);
-                }
-                
-                // Filtrer les lignes vides et convertir en nombres
-                const quantities = lines
-                    .map(line => line.trim())
-                    .filter(line => line !== "")
-                    .map(line => parseInt(line, 10))
-                    .filter(num => !isNaN(num));
-                
-                console.log("Quantités détectées:", quantities);
-                
-                if (quantities.length === 0) {
-                    alert("Aucune quantité valide trouvée.");
+            // Créer un dialogue modal pour le collage
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            overlay.style.zIndex = '1000';
+            overlay.style.display = 'flex';
+            overlay.style.justifyContent = 'center';
+            overlay.style.alignItems = 'center';
+            
+            const dialog = document.createElement('div');
+            dialog.style.backgroundColor = '#fff';
+            dialog.style.padding = '20px';
+            dialog.style.borderRadius = '8px';
+            dialog.style.maxWidth = '600px';
+            dialog.style.width = '90%';
+            
+            dialog.innerHTML = `
+                <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 15px;">
+                    Importer des données pour ${accounts[accountIndex]}
+                </h2>
+                <p style="margin-bottom: 15px;">
+                    Collez les données à importer dans la zone ci-dessous.
+                </p>
+            `;
+            
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.justifyContent = 'space-between';
+            buttonContainer.style.marginTop = '20px';
+            
+            const importBtn = document.createElement('button');
+            importBtn.textContent = 'Importer';
+            importBtn.style.padding = '8px 16px';
+            importBtn.style.backgroundColor = '#10b981';
+            importBtn.style.color = 'white';
+            importBtn.style.border = 'none';
+            importBtn.style.borderRadius = '4px';
+            importBtn.style.cursor = 'pointer';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Annuler';
+            cancelBtn.style.padding = '8px 16px';
+            cancelBtn.style.backgroundColor = '#6b7280';
+            cancelBtn.style.color = 'white';
+            cancelBtn.style.border = 'none';
+            cancelBtn.style.borderRadius = '4px';
+            cancelBtn.style.cursor = 'pointer';
+            
+            buttonContainer.appendChild(importBtn);
+            buttonContainer.appendChild(cancelBtn);
+            
+            dialog.appendChild(pasteArea);
+            dialog.appendChild(buttonContainer);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+            
+            // Mettre le focus sur la zone de texte pour faciliter le collage
+            pasteArea.focus();
+            
+            // Ajouter les écouteurs d'événements
+            importBtn.addEventListener('click', function() {
+                const input = pasteArea.value;
+                if (!input || input.trim() === "") {
+                    alert("Aucune donnée fournie.");
                     return;
                 }
                 
-                let importCount = 0;
-                
-                // Traiter chaque quantité et l'assigner à la carte correspondante
-                for (let i = 0; i < Math.min(quantities.length, cards.length); i++) {
-                    cards[i].quantities[accountIndex] = quantities[i];
-                    importCount++;
+                try {
+                    // Diviser l'entrée par sauts de ligne
+                    let lines = input.split(/\r?\n/);
+                    
+                    // Supprimer le mot "Quantity" s'il est présent dans la première ligne
+                    if (lines.length > 0 && lines[0].trim().toLowerCase() === "quantity") {
+                        lines = lines.slice(1);
+                    }
+                    
+                    // Filtrer les lignes vides et convertir en nombres
+                    const quantities = lines
+                        .map(line => line.trim())
+                        .filter(line => line !== "")
+                        .map(line => parseInt(line, 10))
+                        .filter(num => !isNaN(num));
+                    
+                    console.log("Quantités détectées:", quantities);
+                    
+                    if (quantities.length === 0) {
+                        alert("Aucune quantité valide trouvée.");
+                        return;
+                    }
+                    
+                    let importCount = 0;
+                    
+                    // Confirmation avant import
+                    if (confirm('Cette action remplacera les données actuelles de ce compte. Êtes-vous sûr de vouloir continuer ?')) {
+                        // Traiter chaque quantité et l'assigner à la carte correspondante
+                        for (let i = 0; i < Math.min(quantities.length, cards.length); i++) {
+                            cards[i].quantities[accountIndex] = quantities[i];
+                            importCount++;
+                        }
+                        
+                        if (importCount > 0) {
+                            alert(`Importation réussie: ${importCount} cartes mises à jour pour ${accounts[accountIndex]}.`);
+                            renderCards();
+                            updateStatistics();
+                            saveData(); // Sauvegarder les modifications
+                            document.body.removeChild(overlay);
+                        } else {
+                            alert("Aucune carte n'a pu être importée.");
+                        }
+                    }
+                } catch (e) {
+                    console.error('Erreur pendant l\'importation:', e);
+                    alert('Erreur pendant l\'importation: ' + e.message);
                 }
-                
-                if (importCount > 0) {
-                    alert(`Importation réussie: ${importCount} cartes mises à jour pour ${accounts[accountIndex]}.`);
-                    renderCards();
-                    updateStatistics();
-                    saveData(); // Sauvegarder les modifications
-                } else {
-                    alert("Aucune carte n'a pu être importée.");
-                }
-                
-            } catch (e) {
-                console.error('Erreur pendant l\'importation:', e);
-                alert('Erreur pendant l\'importation: ' + e.message);
-            }
+            });
+            
+            cancelBtn.addEventListener('click', function() {
+                document.body.removeChild(overlay);
+            });
         }
 
         // Mise à jour de l'affichage des cartes pour prendre en compte un nombre variable de comptes
