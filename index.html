@@ -39,16 +39,25 @@
         
         <!-- Configuration des comptes -->
         <div class="bg-white p-4 rounded shadow mb-4">
-            <h2 class="text-xl font-bold mb-2">Configuration des Comptes</h2>
-            <div id="accountsList" class="mb-2">
-                <!-- Les comptes seront affichés ici -->
-            </div>
-            <div class="flex gap-2">
-                <input type="text" id="newAccountName" placeholder="Nom du nouveau compte" 
-                       class="border rounded px-2 py-1 flex-grow">
-                <button id="addAccountBtn" class="bg-blue-500 text-white px-3 py-1 rounded">
-                    Ajouter Compte
+            <div class="flex justify-between items-center cursor-pointer" onclick="toggleSection('accountsSection')">
+                <h2 class="text-xl font-bold">Configuration des Comptes</h2>
+                <button class="text-gray-500 hover:text-gray-700 focus:outline-none" id="accountsSectionToggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </button>
+            </div>
+            <div id="accountsSection" class="mt-2">
+                <div id="accountsList" class="mb-2">
+                    <!-- Les comptes seront affichés ici -->
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="newAccountName" placeholder="Nom du nouveau compte" 
+                           class="border rounded px-2 py-1 flex-grow">
+                    <button id="addAccountBtn" class="bg-blue-500 text-white px-3 py-1 rounded">
+                        Ajouter Compte
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -59,9 +68,20 @@
         
         <!-- Statistiques -->
         <div class="mb-4">
-            <h2 class="text-xl font-bold mb-2">Statistiques</h2>
-            <div id="statistics" class="bg-white p-4 rounded shadow">
-                <!-- Les statistiques seront affichées ici -->
+            <div class="bg-white p-4 rounded shadow">
+                <div class="flex justify-between items-center cursor-pointer" onclick="toggleSection('statisticsSection')">
+                    <h2 class="text-xl font-bold">Statistiques</h2>
+                    <button class="text-gray-500 hover:text-gray-700 focus:outline-none" id="statisticsSectionToggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div id="statisticsSection" class="mt-2">
+                    <div id="statistics">
+                        <!-- Les statistiques seront affichées ici -->
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -1615,10 +1635,43 @@ function addStarFilterListeners() {
     });
 }
 
+// Fonction pour plier/déplier une section
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const toggle = document.getElementById(sectionId + 'Toggle');
+    
+    if (section.style.display === 'none') {
+        // Déplier la section
+        section.style.display = 'block';
+        toggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+    } else {
+        // Plier la section
+        section.style.display = 'none';
+        toggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg>';
+    }
+    
+    // Enregistrer l'état dans le stockage local
+    localStorage.setItem(sectionId + 'State', section.style.display === 'none' ? 'collapsed' : 'expanded');
+}
+
+// Fonction pour restaurer l'état des sections au chargement de la page
+function restoreSectionStates() {
+    const sections = ['accountsSection', 'statisticsSection'];
+    
+    sections.forEach(sectionId => {
+        const savedState = localStorage.getItem(sectionId + 'State');
+        if (savedState === 'collapsed') {
+            // Simuler un clic pour plier la section
+            toggleSection(sectionId);
+        }
+    });
+}
+
 // Ajoutez cette ligne à la fin de votre fonction init()
 document.addEventListener('DOMContentLoaded', function() {
     // Si cette fonction est déjà appelée dans votre init(), ne l'ajoutez pas à nouveau
     addStarFilterListeners();
+    restoreSectionStates();
 });
 </script>
 </body>
